@@ -1,0 +1,9 @@
+Layer 7
+
+youtube
+^.+(youtube|m.youtube).*$
+
+google content
+^.+(google|google+|accounts.google).*$
+
+limit youtube queue tree global interface
