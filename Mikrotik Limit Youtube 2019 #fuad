@@ -17,6 +17,6 @@ add name=Youtube parent="ether3" packet-mark=youtube queue=default-small limit-a
 #Catatan
 parent="ether3" adalah port ether3 yang digunakan sebagai port lokal / jaringan LAN
 limit-at=1500k adalah batas minimal bandwith untuk youtube yaitu 1,5 Mbps atau 1500 Kbps
-max-limit=2M adalah batas minimal bandwith untuk youtube yaitu 2 Mbps
+max-limit=2M adalah batas maksimal bandwith untuk youtube yaitu 2 Mbps
 
 #Dibuat 1 September 2019
