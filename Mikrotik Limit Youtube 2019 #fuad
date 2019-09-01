@@ -1,0 +1,22 @@
+/ip firewall mangle
+add chain=forward content=mp4 action=mark-connection new-connection-mark=youtube passthrough=yes comment=Mp4Content
+add chain=forward content=mp3 action=mark-connection new-connection-mark=youtube passthrough=yes comment=Mp3Content
+add chain=forward content=avi action=mark-connection new-connection-mark=youtube passthrough=yes comment=AviContent
+add chain=forward content=mkv action=mark-connection new-connection-mark=youtube passthrough=yes comment=MkvContent
+add chain=forward content=mpg action=mark-connection new-connection-mark=youtube passthrough=yes comment=MpgContent
+add chain=forward content=mpeg action=mark-connection new-connection-mark=youtube passthrough=yes comment=MpegContent
+add chain=forward content=flv action=mark-connection new-connection-mark=youtube passthrough=yes comment=FlvContent
+add chain=forward content=youtube action=mark-connection new-connection-mark=youtube passthrough=yes comment=Youtube
+add chain=forward content=googlevideo action=mark-connection new-connection-mark=youtube passthrough=yes comment=GoogleVideo
+add chain=forward connection-mark=youtube action=mark-packet new-packet-mark=youtube passthrough=no comment=YoutubePacket
+
+/queue tree
+add name=Youtube parent="ether3" packet-mark=youtube queue=default-small limit-at=1500k max-limit=2M comment="Limit Youtube"
+
+
+#Catatan
+parent="ether3" adalah port ether3 yang digunakan sebagai port lokal / jaringan LAN
+limit-at=1500k adalah batas minimal bandwith untuk youtube yaitu 1,5 Mbps atau 1500 Kbps
+max-limit=2M adalah batas minimal bandwith untuk youtube yaitu 2 Mbps
+
+#Dibuat 1 September 2019
