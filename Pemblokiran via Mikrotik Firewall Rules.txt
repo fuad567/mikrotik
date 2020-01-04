@@ -1,0 +1,25 @@
+/ip firewall filter add chain=forward src-address=192.168.10.0/24 dst-address=99.99.99.99 protocol=tcp dst-port=80 action=drop
+
+
+Keterangan Skenario & Parameter :
+
+chain= merupakan sebuah aturan atau parameter yang digunakan untuk menentukan jenis traffic yang akan diolah oleh firewall mikrotik. Misalnya traffic yang masuk ke router (Input) atau traffic yang keluar dari router (Output) atau traffic yang melewati router (Forward).
+
+src-address= merupakan ip subnet atau network asal atau client yang akan diblokir, jadi wajib menggunakan 0/24. 
+Misalnya 192.168.10.0/24 sama artinya dengan memblokir semua ip asal / client dari 192.168.10.1 sampai 192.168.10.254.
+
+dst-address= merupakan ip address atau server tujuan yang akan diblokir. Misalnya disini kita akan memblokir ip 99.99.99.99.
+
+protocol= merupakan jenis protokol atau layanan pada jaringan yang akan diblokir. Umumnya adalah tcp atau udp.
+
+dst-port= port merupakan layanan atau aplikasi jaringan. port ini merupakan bisa disebut sebagai jenis atau macam turunan dari protocol. Port 80 merupakan port aplikasi atau layanan webserver yang biasa diakses melalui web browser.
+
+action= merupakan aksi yang diberlakukan terhadap suatu rule atau aturan firewall. Drop berarti menghapus / memblokir / menutup akses suatu traffic pada jaringan.
+
+
+#Parameter diatas bisa juga ditambah dengan parameter in-interface dan out-interface maupun parameter lainnya, tetapi sebetulnya sudah sangat cukup untuk memblokir akses suatu ip address server tujuan dari client yang ditentukan.
+
+
+Terima kasih.
+
+#dibuat 4 Januari 2020.
