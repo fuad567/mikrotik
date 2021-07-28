@@ -60,7 +60,9 @@ add action=mark-connection chain=prerouting connection-mark=no-mark dst-address-
 add action=mark-connection chain=prerouting connection-mark=no-mark dst-address-type=!local in-interface=bridge1 new-connection-mark=Wan3_conn passthrough=yes per-connection-classifier=bothaddresses-and-ports:3/2
 
 =========================================== SETTINGAN OK ===========================================
- 
+ISP 1 : 10 Mbps
+ISP 2 : 20 Mbps
+
 /interface > interface list > list > LAN
 /interface > interface list > tambahkan port ke list interface LAN
 
