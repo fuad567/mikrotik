@@ -1,0 +1,193 @@
+2 or more Internet connections.
+– Wan1 192.168.30.2
+– Wan2 192.168.42.2
+– Lan via bridge1 interface 192.168.88.0/24
+
+● Set Up : Add addresses
+/ ip address
+add address=192.168.88.1/24 network=192.168.88.0 interface=bridge1
+add address= 192.168.30.2/24 network=192.168.30.0 interface=Wan1
+add address=192.168.42.2/24 network=192.168.42.0 interface=Wan2
+
+● Set Up : Accept traffic in the prerouting chain
+/ip firewall mangle
+add action=accept chain=prerouting dst-address=192.168.42.0/24 in-interface=bridge1
+add action=accept chain=prerouting dst-address=192.168.30.0/24 in-interface=bridge1
+
+● Set Up : Mark traffic from the Internet to avoid replies using wrong gateway.
+/ip firewall mangle
+add action=mark-connection chain=input connection-mark=no-mark in-interface=Wan1 new-connection-mark=Wan1_conn passthrough=yes
+add action=mark-connection chain=input connection-mark=no-mark in-interface=Wan2 new-connection-mark=Wan2_conn passthrough=yes
+
+● Set Up : Add the PCC rules in Ip mangle menu and mark connections
+/ip firewall mangle
+add action=mark-connection chain=prerouting connection-mark=no-mark dst-address-type=!local in-interface=bridge1 new-connection-mark=Wan1_conn passthrough=yes per-connection-classifier=bothaddresses-and-ports:2/0
+add action=mark-connection chain=prerouting connection-mark=no-mark dst-address-type=!local in-interface=bridge1 new-connection-mark=Wan2_conn passthrough=yes per-connection-classifier=bothaddresses-and-ports:2/1
+
+● Set Up : Add routing mark in prerouting and output chains
+/ip firewall mangle
+add action=mark-routing chain=prerouting connection-mark=Wan1_conn in-interface=bridge1 new-routingmark=to_Wan1 passthrough=no
+add action=mark-routing chain=prerouting connection-mark=Wan2_conn in-interface=bridge1 new-routingmark=to_Wan2 passthrough=no
+add action=mark-routing chain=output connection-mark=Wan1_conn new-routing-mark=to_Wan1
+add action=mark-routing chain=output connection-mark=Wan2_conn new-routing-mark=to_Wan2
+
+
+● Set Up : Masquerade Rule. Add a masquerade rule for each Wan connection in ip firewall nat
+/ip firewall nat
+add action=masquerade chain=srcnat out-interface=Wan1
+add action=masquerade chain=srcnat out-interface=Wan2
+
+● Set Up : Routing Table
+/ip route
+add dst-address=0.0.0.0/0 gateway=192.168.30.1 check-gateway=ping distance=1 disable=no routing-mark="to_Wan1" scope=30 target-scope=10
+add dst-address=0.0.0.0/0 gateway=192.168.42.1 check-gateway=ping distance=1 disable=no routing-mark="to_Wan2" scope=30 target-scope=10
+add dst-address=0.0.0.0/0 gateway=192.168.30.1 distance=1 disable=no
+add dst-address=0.0.0.0/0 gateway=192.168.42.1 distance=1 disable=no
+
+● Check : /ip firewall connections
+● Check : /interface (wan1 or wan2) traffic
+● Check : Running Speed test on browser
+
+Referensi : 
+- https://mum.mikrotik.com/presentations/KE18/presentation_5110_1517560105.pdf
+- https://wiki.mikrotik.com/wiki/Manual:Hotspot_with_PCC
+
+Note : Menambahkan 3 WAN, Just modify PCC rule and corresponding routing mark and default route
+
+/ip firewall mangle
+add action=mark-connection chain=prerouting connection-mark=no-mark dst-address-type=!local in-interface=bridge1 new-connection-mark=Wan1_conn passthrough=yes per-connection-classifier=bothaddresses-and-ports:3/0
+add action=mark-connection chain=prerouting connection-mark=no-mark dst-address-type=!local in-interface=bridge1 new-connection-mark=Wan2_conn passthrough=yes per-connection-classifier=bothaddresses-and-ports:3/1
+add action=mark-connection chain=prerouting connection-mark=no-mark dst-address-type=!local in-interface=bridge1 new-connection-mark=Wan3_conn passthrough=yes per-connection-classifier=bothaddresses-and-ports:3/2
+
+=========================================== SETTINGAN OK ===========================================
+ 
+/interface > interface list > list > LAN
+/interface > interface list > tambahkan port ke list interface LAN
+
+
+/ip firewall address-list
+add address=192.168.10.0/24 disabled=no list=LOKAL
+
+
+/ip firewall nat
+Buat NAT out interface ether yang dipakai untuk WAN 1 dan WAN 2
+
+
+/ip firewall mangle
+add action=accept chain=prerouting comment="bypass lokal akses" \
+dst-address-list=LOKAL in-interface-list=LAN
+add action=accept chain=output dst-address-list=LOKAL 
+
+
+/ip firewall mangle
+add action=mark-connection chain=prerouting comment="PCC " \
+in-interface-list=LAN new-connection-mark="con pcc ISP1" \
+passthrough=yes per-connection-classifier=\
+both-addresses-and-ports:3/0 disabled=no
+
+add action=mark-connection chain=prerouting \
+in-interface-list=LAN new-connection-mark="con pcc ISP2" \
+passthrough=yes per-connection-classifier=\
+both-addresses-and-ports:3/1 disabled=no
+
+add action=mark-connection chain=prerouting \
+in-interface-list=LAN new-connection-mark="con pcc ISP2" \
+passthrough=yes per-connection-classifier=\
+both-addresses-and-ports:3/2 disabled=no
+
+
+/ip firewall mangle
+add action=mark-routing chain=prerouting connection-mark="con pcc ISP1" \
+disabled=no passthrough=yes in-interface-list=LAN \
+new-routing-mark="ke ISP1"
+add action=mark-routing chain=prerouting connection-mark="con pcc ISP2" \
+disabled=no passthrough=yes in-interface-list=LAN \
+new-routing-mark="ke ISP2"
+
+
+/ip route
+add dst-address=0.0.0.0/0 gateway=10.10.10.1 check-gateway=ping \
+distance=1 disable=no routing-mark="ke ISP1" scope=30 target-scope=10
+add dst-address=0.0.0.0/0 gateway=192.168.1.1 check-gateway=ping \
+distance=1 disable=no routing-mark="ke ISP2" scope=30 target-scope=10
+
+
+
+===================================
+	Basic configuration 	
+	
+/interface ethernet
+set 0 name=LAN
+set 3 name=ISP_1
+set 4 name=ISP_2
+
+/ip address
+add address=192.168.22.1/24 interface=LAN
+add address=1.1.1.32/24 interface=ISP_1
+add address=2.2.2.65/24 interface=ISP_2
+
+/ip firewall nat
+add action=masquerade chain=srcnat out-interface=ISP_1
+add action=masquerade chain=srcnat out-interface=ISP_2
+
+
+	Routing tables
+	
+/ip route
+add gateway=1.1.1.1 distance=1
+add gateway=2.2.2.1 distance=2
+add gateway=1.1.1.1 routing-mark=ISP1_Route distance=1
+add gateway=2.2.2.1 routing-mark=ISP2_Route distance=1
+
+
+	Connected networks – part 2
+	
+/ip firewall address-list
+add address=1.1.1.0/24 list=Connected
+add address=2.2.2.0/24 list=Connected
+add address=192.168.22.0/24 list=Connected
+add address=192.168.22.0/24 list=LAN
+
+/ip firewall mangle
+add chain=prerouting src-address-list=Connected dst-address-list=Connected action=accept
+
+
+	Router marking – WAN -> Router
+• Catch the connection from internet to the
+router, and mark them.
+
+/ip firewall mangle
+add chain=input connection-mark=no-mark in-interface=ISP_1 action=mark-connection new-connection-mark=WAN1->ROS
+add chain=input connection-mark=no-mark in-interface=ISP_2 action=mark-connection new-connection-mark=WAN2->ROS
+
+
+	Router marking – WAN -> Router
+• Then put these connections into the proper
+routing tables.
+
+add chain=output connection-mark=WAN1->ROS action=mark-routing new-routing-mark=ISP1_Route
+add chain=output connection-mark=WAN2->ROS action=mark-routing new-routing-mark=ISP2_Route
+
+
+	LAN marking
+	
+/ip firewall mangle
+add chain=forward connection-mark=no-mark in-interface=ISP_1 action=mark-connection new-connection-mark=WAN1->LANs
+add chain=forward connection-mark=no-mark in-interface=ISP_2 action=mark-connection new-connection-mark=WAN2->LANs
+add chain=prerouting connection-mark=WAN1->LANs src-address-list=LAN action=mark-routing new-routing-mark=ISP1_Route
+add chain=prerouting connection-mark=WAN2->LANs src-address-list=LAN action=mark-routing new-routing-mark=ISP2_Route
+
+
+	LAN -> WAN mangle
+	
+/ip firewall mangle
+add chain=prerouting connection-mark=no-mark src-address-list=LAN dst-addresslist=!Connected dst-address-type=!local action=mark-connection new-connection-mark=LAN->WAN
+add chain=prerouting connection-mark=LAN->WAN src-address-list=LAN action=mark-routing new-routing-mark=ISP1_Route comment="Load-Balancing here" 
+
+
+	Sticky connections
+	
+add chain=prerouting connection-mark=LAN->WAN routing-mark=ISP1_Route action=mark-connection new-connection-mark=Sticky_ISP1
+add chain=prerouting connection-mark=LAN->WAN routing-mark=ISP2_Route action=mark-connection new-connection-mark=Sticky_ISP2
+add chain=prerouting connection-mark=Sticky_ISP1 src-address-list=LAN action=mark-routing new-routing-mark=ISP1_Route
+add chain=prerouting connection-mark=Sticky_ISP2 src-address-list=LAN action=mark-routing new-routing-mark=ISP2_Route
