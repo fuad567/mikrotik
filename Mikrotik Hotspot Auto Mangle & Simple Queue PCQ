@@ -1,0 +1,31 @@
+Mikrotik Hotspot Auto Mangle & Simple Queue PCQ - On-Login & On-Logout Script
+
+/ip hotspot user profile
+add name=hotspot-profile on-login="\
+/ip firewall mangle add chain=prerouting src-address=\$user address=\$user \
+    action=mark-connection new-connection-mark=hotspot-conn passthrough=yes;\
+/ip firewall mangle add chain=prerouting connection-mark=hotspot-conn \
+    action=mark-packet new-packet-mark=hotspot-pkt passthrough=no;\
+/queue simple add name=\$user target-addresses=\$user packet-marks=hotspot-pkt \
+    parent=none direction=both queue=default/default \
+    limit-at=1M/50M max-limit=1M/50M total-queue=default \
+    pcq-rate=0 pcq-limit=50 pcq-classifier=both pcq-total-limit=2000;\
+"
+
+/ip hotspot user profile
+set hotspot-profile on-logout="\
+/ip firewall mangle remove [find connection-mark=hotspot-conn];\
+/ip firewall mangle remove [find packet-mark=hotspot-pkt];\
+/queue simple remove [find packet-marks=hotspot-pkt];\
+"
+
+Link Mikhmon : https://laksa19.github.io/?mikhmon/v4
+
+Catatan :
+- Skrip ON-LOGIN akan membuat profil pengguna "hotspot-profile" yang akan dieksekusi saat pengguna terhubung (on-login). Pada saat masuk, skrip akan menambahkan mangle rule pada prerouting chain untuk menandai koneksi dengan "hotspot-conn" dan paket dengan "hotspot-pkt".
+- Kemudian, skrip akan menambahkan aturan queue simple dengan nama yang sesuai dengan alamat pengguna (misalnya, alamat IP pengguna) dan menggunakan packet-marks "hotspot-pkt". Bandwidth limit ditentukan dengan "limit-at=1M/50M" yang berarti 1 Mbps untuk upload dan 50 Mbps untuk download. Selain itu, "pcq-limit=50" menentukan jumlah maksimum koneksi yang diizinkan, dan "pcq-total-limit=2000" menentukan jumlah total koneksi yang diizinkan.
+- Pastikan untuk mengganti nama profil pengguna, dan sesuaikan dengan kebutuhan Anda.
+- Skrip ini akan menghapus mangle rule yang memiliki connection-mark "hotspot-conn" dan packet-mark "hotspot-pkt". Selain itu, skrip juga akan menghapus simple queue dengan packet-marks "hotspot-pkt".
+
+- Pastikan memperbarui nama profil pengguna sesuai dengan profil yang digunakan dalam skrip sebelumnya (misalnya, "hotspot-profile").
+- Dengan menggunakan skript ON-LOGOUT ini, setiap kali pengguna keluar dari Hotspot, aturan mangle dan simple queue terkait akan dihapus untuk membersihkan konfigurasi yang tidak diperlukan.
